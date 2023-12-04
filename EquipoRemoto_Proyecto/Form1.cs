@@ -1,5 +1,6 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Management;
 using System.Net;
@@ -113,7 +114,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_OS_VERSION")
             {
-                return "Versión del Sistema Operativo: " + Environment.OSVersion.VersionString;
+                return "Versiï¿½n del Sistema Operativo: " + Environment.OSVersion.VersionString;
             }
             else if (command == "GET_COMPUTER_NAME")
             {
@@ -121,7 +122,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_PROCESSOR_INFO")
             {
-                return "Información del procesador: " + GetProcessorInfo();
+                return "Informaciï¿½n del procesador: " + GetProcessorInfo();
             }
             else if (command == "GET_TOTAL_RAM")
             {
@@ -141,7 +142,11 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GetResolution")
             {
-                return "Resolución pantalla: " + GetResolution();
+                return "Resoluciï¿½n pantalla: " + GetResolution();
+            }
+            else if (command == "TAKE_SCREENSHOT")
+            {
+                return TakeScreenshot();
             }
             else
             {
@@ -155,18 +160,46 @@ namespace EquipoRemoto_Proyecto
         {
             return TimeZoneInfo.Local.Id;
         }
-        
+
+        private string TakeScreenshot()
+        {
+            try
+            {
+                Bitmap screenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width,
+                    Screen.PrimaryScreen.Bounds.Height,
+                    PixelFormat.Format32bppArgb);
+                Graphics gfxScreenshot = Graphics.FromImage(screenshot);
+
+                gfxScreenshot.CopyFromScreen(Screen.PrimaryScreen.Bounds.X,
+                    Screen.PrimaryScreen.Bounds.Y,
+                    0,
+                    0,
+                    Screen.PrimaryScreen.Bounds.Size,
+                    CopyPixelOperation.SourceCopy);
+
+                string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "screenshot.png");
+                screenshot.Save(fileName, ImageFormat.Png);
+
+                return $"Captura de pantalla guardada en: {fileName}";
+            }
+            catch (Exception ex)
+            {
+                return $"Error al tomar la captura de pantalla: {ex.Message}";
+            }
+        }
+
+
 
         static String ObtenerFechaHora()
         {
             DateTime fechaHoraActual = DateTime.Now;
-            int año = (fechaHoraActual.Year);
+            int ano = (fechaHoraActual.Year);
             int mes = (fechaHoraActual.Month);
             int dia = (fechaHoraActual.Day);
             int hora = (fechaHoraActual.Hour);
             int minuto = (fechaHoraActual.Minute);
             int segundo = (fechaHoraActual.Second);
-            return "Fecha:  \n" + "Año: " + año + " \nMes: " + mes + "\nDía: " + dia + " \nHora: " + hora  + " " + minuto + " " + segundo;
+            return "Fecha:  \n" + "Aï¿½o: " + ano + " \nMes: " + mes + "\nDï¿½a: " + dia + " \nHora: " + hora + " " + minuto + " " + segundo;
         }
         static string ObtenerListaProcesos()
         {
@@ -192,7 +225,7 @@ namespace EquipoRemoto_Proyecto
                 if (drive.IsReady)
                 {
                     mensaje.AppendLine($"Letra de unidad: {drive.Name}\n" +
-                        $"Tamaño total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
+                        $"Tamaï¿½o total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
                         $"Espacio utilizado: {((drive.TotalSize - drive.TotalFreeSpace) / (1024.0 * 1024 * 1024)):F2} GB\n" +
                         $"Espacio disponible: {drive.TotalFreeSpace / (1024.0 * 1024 * 1024):F2} GB\n" +
                         $"Formato del sistema de archivos: {drive.DriveFormat}\n");
@@ -227,7 +260,7 @@ namespace EquipoRemoto_Proyecto
             }
             catch (Exception ex)
             {
-                return "Error al obtener la información de RAM: " + ex.Message;
+                return "Error al obtener la informaciï¿½n de RAM: " + ex.Message;
             }
         }
 
@@ -237,7 +270,7 @@ namespace EquipoRemoto_Proyecto
 
             int screenWidth = primaryScreen.Bounds.Width;
             int screenHeight = primaryScreen.Bounds.Height;
-            return $"La resolución de la pantalla es {screenWidth} x {screenHeight} píxeles.";
+            return $"La resoluciï¿½n de la pantalla es {screenWidth} x {screenHeight} pï¿½xeles.";
         }
 
         private void UpdateLog(string message)
