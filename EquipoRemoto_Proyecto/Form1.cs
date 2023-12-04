@@ -131,9 +131,13 @@ namespace EquipoRemoto_Proyecto
             //{
             //    return "Lista de unidades del disco duro" + GetTotalRAM();
             //}
-            else if (command == "GET_LIST_DD")
+            else if (command == "GET_TIME_ZONE")
             {
-                return "Lista de unidades del disco duro" + GetTotalRAM();
+                return "Zona horaria del sistema: " + GetZonaHoraria();
+            }
+            else if (command == "GET_TIME_DATE")
+            {
+                return "Fecha y hora del sistema: " + ObtenerFechaHora();
             }
             else
             {
