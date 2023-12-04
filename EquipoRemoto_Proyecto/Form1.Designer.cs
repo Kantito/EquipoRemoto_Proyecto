@@ -28,18 +28,31 @@
         /// </summary>
         private void InitializeComponent()
         {
+            lbl_conexion = new Label();
             SuspendLayout();
+            // 
+            // lbl_conexion
+            // 
+            lbl_conexion.AutoSize = true;
+            lbl_conexion.Location = new Point(360, 96);
+            lbl_conexion.Name = "lbl_conexion";
+            lbl_conexion.Size = new Size(0, 15);
+            lbl_conexion.TabIndex = 0;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(783, 416);
+            Controls.Add(lbl_conexion);
             Name = "Form1";
             Text = "Form1";
             ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
+
+        private Label lbl_conexion;
     }
 }
