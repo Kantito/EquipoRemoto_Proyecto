@@ -122,7 +122,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_PROCESSOR_INFO")
             {
-                return "Informaci�n del procesador: " + GetProcessorInfo();
+                return "Información del procesador: " + GetProcessorInfo();
             }
             else if (command == "GET_TOTAL_RAM")
             {
@@ -159,6 +159,18 @@ namespace EquipoRemoto_Proyecto
             else if (command == "KILL_PROCESS")
             {
                 return "";
+            }
+            else if (command == "GET_TOTAL_PROCESS")
+            {
+                return "Procesos en ejecucion: " + ObtenerListaProcesos();
+            }
+            else if (command == "GET_USER_NAME")
+            {
+                return "Nombre del usuario que inicio sesion: " + Environment.UserName;
+            }
+            else if (command == "TAKE_SCREENSHOT")
+            {
+                return "Captura de pantalla: " + TomarCaptura();
             }
             else
             {
@@ -210,14 +222,16 @@ namespace EquipoRemoto_Proyecto
             int segundo = (fechaHoraActual.Second);
             return "Fecha:  \n" + "A�o: " + ano + " \nMes: " + mes + "\nD�a: " + dia + " \nHora: " + hora + " " + minuto + " " + segundo;
         }
+
+
         static string ObtenerListaProcesos()
         {
             Process[] processes = Process.GetProcesses();
-            StringBuilder processList = new StringBuilder();
+            StringBuilder processList = new StringBuilder("Lista de procesos: \n");
 
             foreach (Process process in processes)
             {
-                processList.AppendLine($"Nombre del proceso: {process.ProcessName}, ID: {process.Id}");
+                processList.Append($"Nombre del proceso: {process.ProcessName}, ID: {process.Id} ");
             }
 
             return processList.ToString();
@@ -252,7 +266,7 @@ namespace EquipoRemoto_Proyecto
             {
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    processorInfo += obj["Name"].ToString() + "\n";
+                    processorInfo += obj["Name"].ToString();
                 }
             }
             return processorInfo;
@@ -262,10 +276,20 @@ namespace EquipoRemoto_Proyecto
         {
             try
             {
-                PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available Bytes");
-                long ramBytes = Convert.ToInt64(ramCounter.NextValue());
-                double gbRam = ramBytes / (1024 * 1024 * 1024);
-                return gbRam.ToString("F2") + " GB";
+                ObjectQuery objectQuery = new ObjectQuery("SELECT * FROM Win32_ComputerSystem");
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher(objectQuery);
+
+                foreach (ManagementObject item in searcher.Get())
+                {
+                    if (item["TotalPhysicalMemory"] != null)
+                    {
+                        long totalPhysicalMemory = Convert.ToInt64(item["TotalPhysicalMemory"]);
+                        double gbRam = totalPhysicalMemory / (1024.0 * 1024 * 1024);
+                        return $"{gbRam:F2} GB de RAM instalada";
+                    }
+                }
+
+                return "No se pudo obtener la información de RAM";
             }
             catch (Exception ex)
             {
