@@ -127,10 +127,10 @@ namespace EquipoRemoto_Proyecto
             {
                 return "Total RAM (En GB): " + GetTotalRAM();
             }
-            //else if (command == "GET_LIST_DD")
-            //{
-            //    return "Lista de unidades del disco duro" + GetTotalRAM();
-            //}
+            else if (command == "GET_LIST_DD")
+            {
+                return "Lista de unidades del disco duro" + ShowDriveInfo();
+            }
             else if (command == "GET_TIME_ZONE")
             {
                 return "Zona horaria del sistema: " + GetZonaHoraria();
@@ -138,6 +138,10 @@ namespace EquipoRemoto_Proyecto
             else if (command == "GET_TIME_DATE")
             {
                 return "Fecha y hora del sistema: " + ObtenerFechaHora();
+            }
+            else if (command == "GetResolution")
+            {
+                return "Resolución pantalla: " + GetResolution();
             }
             else
             {
@@ -178,32 +182,27 @@ namespace EquipoRemoto_Proyecto
         }
 
 
-        private void ShowDriveInfo()
+        private string ShowDriveInfo()
         {
+            StringBuilder mensaje = new StringBuilder();
             DriveInfo[] drives = DriveInfo.GetDrives();
 
             foreach (DriveInfo drive in drives)
             {
                 if (drive.IsReady)
                 {
-                    Button driveButton = new Button();
-                    driveButton.Text = $"Unidad {drive.Name}";
-                    driveButton.Click += (sender, e) => ShowDriveDetails(drive);
-                    flp_listaUnidadesDD.Controls.Add(driveButton);
+                    mensaje.AppendLine($"Letra de unidad: {drive.Name}\n" +
+                        $"Tamaño total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
+                        $"Espacio utilizado: {((drive.TotalSize - drive.TotalFreeSpace) / (1024.0 * 1024 * 1024)):F2} GB\n" +
+                        $"Espacio disponible: {drive.TotalFreeSpace / (1024.0 * 1024 * 1024):F2} GB\n" +
+                        $"Formato del sistema de archivos: {drive.DriveFormat}\n");
                 }
             }
+
+            // Devolver la cadena resultante
+            return mensaje.ToString();
         }
 
-
-        private void ShowDriveDetails(DriveInfo drive)
-        {
-            MessageBox.Show($"Letra de unidad: {drive.Name}\n" +
-                            $"Tamaño total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
-                            $"Espacio utilizado: {((drive.TotalSize - drive.TotalFreeSpace) / (1024.0 * 1024 * 1024)):F2} GB\n" +
-                            $"Espacio disponible: {drive.TotalFreeSpace / (1024.0 * 1024 * 1024):F2} GB\n" +
-                            $"Formato del sistema de archivos: {drive.DriveFormat}");
-
-        }
         private string GetProcessorInfo()
         {
             string processorInfo = string.Empty;
@@ -230,6 +229,15 @@ namespace EquipoRemoto_Proyecto
             {
                 return "Error al obtener la información de RAM: " + ex.Message;
             }
+        }
+
+        private string GetResolution()
+        {
+            Screen primaryScreen = Screen.PrimaryScreen;
+
+            int screenWidth = primaryScreen.Bounds.Width;
+            int screenHeight = primaryScreen.Bounds.Height;
+            return $"La resolución de la pantalla es {screenWidth} x {screenHeight} píxeles.";
         }
 
         private void UpdateLog(string message)
