@@ -114,7 +114,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_OS_VERSION")
             {
-                return "Versi�n del Sistema Operativo: " + Environment.OSVersion.VersionString;
+                return "Version del Sistema Operativo: " + Environment.OSVersion.VersionString;
             }
             else if (command == "GET_COMPUTER_NAME")
             {
@@ -122,7 +122,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_PROCESSOR_INFO")
             {
-                return "Informaci�n del procesador: " + GetProcessorInfo();
+                return "Informacion del procesador: " + GetProcessorInfo();
             }
             else if (command == "GET_TOTAL_RAM")
             {
@@ -140,13 +140,21 @@ namespace EquipoRemoto_Proyecto
             {
                 return "Fecha y hora del sistema: " + ObtenerFechaHora();
             }
-            else if (command == "GetResolution")
+            else if (command == "GET_RESOLUTION")
             {
-                return "Resoluci�n pantalla: " + GetResolution();
+                return "Resolucion pantalla: " + GetResolution();
+            }
+            else if (command == "GET_TOTAL_PROCESS")
+            {
+                return "Procesos en ejecucion: " + ObtenerListaProcesos();
+            }
+            else if (command == "GET_USER_NAME")
+            {
+                return "Nombre del usuario que inicio sesion: " + Environment.UserName;
             }
             else if (command == "TAKE_SCREENSHOT")
             {
-                return TakeScreenshot();
+                return "Captura de pantalla: " + TomarCaptura();
             }
             else
             {
@@ -161,7 +169,7 @@ namespace EquipoRemoto_Proyecto
             return TimeZoneInfo.Local.Id;
         }
 
-        private string TakeScreenshot()
+        private string TomarCaptura()
         {
             try
             {
@@ -189,26 +197,25 @@ namespace EquipoRemoto_Proyecto
         }
 
 
-
-        static String ObtenerFechaHora()
+        private string ObtenerFechaHora()
         {
             DateTime fechaHoraActual = DateTime.Now;
-            int ano = (fechaHoraActual.Year);
-            int mes = (fechaHoraActual.Month);
-            int dia = (fechaHoraActual.Day);
-            int hora = (fechaHoraActual.Hour);
-            int minuto = (fechaHoraActual.Minute);
-            int segundo = (fechaHoraActual.Second);
-            return "Fecha:  \n" + "A�o: " + ano + " \nMes: " + mes + "\nD�a: " + dia + " \nHora: " + hora + " " + minuto + " " + segundo;
+
+            string fechaFormateada = fechaHoraActual.ToString("yyyy-MM-dd");
+            string horaFormateada = fechaHoraActual.ToString("HH:mm:ss");
+
+            return $"Fecha: {fechaFormateada}   Hora: {horaFormateada}";
         }
+
+
         static string ObtenerListaProcesos()
         {
             Process[] processes = Process.GetProcesses();
-            StringBuilder processList = new StringBuilder();
+            StringBuilder processList = new StringBuilder("Lista de procesos: \n");
 
             foreach (Process process in processes)
             {
-                processList.AppendLine($"Nombre del proceso: {process.ProcessName}, ID: {process.Id}");
+                processList.Append($"Nombre del proceso: {process.ProcessName}, ID: {process.Id} ");
             }
 
             return processList.ToString();
@@ -224,8 +231,8 @@ namespace EquipoRemoto_Proyecto
             {
                 if (drive.IsReady)
                 {
-                    mensaje.AppendLine($"Letra de unidad: {drive.Name}\n" +
-                        $"Tama�o total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
+                    mensaje.Append($"Letra de unidad: {drive.Name}\n" +
+                        $"Tamano total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
                         $"Espacio utilizado: {((drive.TotalSize - drive.TotalFreeSpace) / (1024.0 * 1024 * 1024)):F2} GB\n" +
                         $"Espacio disponible: {drive.TotalFreeSpace / (1024.0 * 1024 * 1024):F2} GB\n" +
                         $"Formato del sistema de archivos: {drive.DriveFormat}\n");
@@ -243,7 +250,7 @@ namespace EquipoRemoto_Proyecto
             {
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    processorInfo += obj["Name"].ToString() + "\n";
+                    processorInfo += obj["Name"].ToString();
                 }
             }
             return processorInfo;
@@ -253,14 +260,24 @@ namespace EquipoRemoto_Proyecto
         {
             try
             {
-                PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available Bytes");
-                long ramBytes = Convert.ToInt64(ramCounter.NextValue());
-                double gbRam = ramBytes / (1024 * 1024 * 1024);
-                return gbRam.ToString("F2") + " GB";
+                ObjectQuery objectQuery = new ObjectQuery("SELECT * FROM Win32_ComputerSystem");
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher(objectQuery);
+
+                foreach (ManagementObject item in searcher.Get())
+                {
+                    if (item["TotalPhysicalMemory"] != null)
+                    {
+                        long totalPhysicalMemory = Convert.ToInt64(item["TotalPhysicalMemory"]);
+                        double gbRam = totalPhysicalMemory / (1024.0 * 1024 * 1024);
+                        return $"{gbRam:F2} GB de RAM instalada";
+                    }
+                }
+
+                return "No se pudo obtener la información de RAM";
             }
             catch (Exception ex)
             {
-                return "Error al obtener la informaci�n de RAM: " + ex.Message;
+                return "Error al obtener la información de RAM: " + ex.Message;
             }
         }
 
@@ -270,7 +287,7 @@ namespace EquipoRemoto_Proyecto
 
             int screenWidth = primaryScreen.Bounds.Width;
             int screenHeight = primaryScreen.Bounds.Height;
-            return $"La resoluci�n de la pantalla es {screenWidth} x {screenHeight} p�xeles.";
+            return $"La resolucion de la pantalla es {screenWidth} x {screenHeight} pixeles.";
         }
 
         private void UpdateLog(string message)
