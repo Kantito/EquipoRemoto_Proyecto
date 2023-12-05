@@ -106,7 +106,7 @@ namespace EquipoRemoto_Proyecto
         {
             if (command == "GET_OS_NAME")
             {
-                return "Nombre del Sistema Operativo: " + Environment.OSVersion.ToString();
+                return "Nombre del Sistema Operativo: " + Environment.OSVersion.VersionString;
             }
             else if (command == "GET_OS_PLATFORM")
             {
@@ -114,7 +114,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_OS_VERSION")
             {
-                return "Versi�n del Sistema Operativo: " + Environment.OSVersion.VersionString;
+                return "Version del Sistema Operativo: " + Environment.OSVersion.VersionString;
             }
             else if (command == "GET_COMPUTER_NAME")
             {
@@ -122,7 +122,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_PROCESSOR_INFO")
             {
-                return "Información del procesador: " + GetProcessorInfo();
+                return "Informacion del procesador: " + GetProcessorInfo();
             }
             else if (command == "GET_TOTAL_RAM")
             {
@@ -146,7 +146,7 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "GET_RESOLUTION")
             {
-                return "Resoluci�n pantalla: " + GetResolution();
+                return "Resolucion pantalla: " + GetResolution();
             }
             else if (command == "TAKE_SCREENSHOT")
             {
@@ -154,12 +154,22 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "CLOSE_SESION")
             {
-                return "";
+                return CerrarSesion();
             }
-            else if (command == "KILL_PROCESS")
+            else if (command.StartsWith("KILL_PROCESS"))
             {
-                return "";
+                string[] mensajeSplit = command.Split(' ');
+                if (mensajeSplit.Length >= 2)
+                {
+                    if (int.TryParse(mensajeSplit[1], out int IDprocess))
+                    {
+                        CerrarProceso(IDprocess);
+
+                    }
+                }
+                return "No se pudo terminar el proceso";
             }
+
             else if (command == "GET_TOTAL_PROCESS")
             {
                 return "Procesos en ejecucion: " + ObtenerListaProcesos();
@@ -170,7 +180,33 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "TAKE_SCREENSHOT")
             {
-                return "Captura de pantalla: " + TomarCaptura();
+                return "Captura de pantalla: " + TakeScreenshot();
+
+            }
+            else if (command == "INCREASE_VOLUMEN")
+            {
+                return SubirVolumen();
+            }
+            else if (command == "DECREASE_VOLUMEN")
+            {
+                return BajarVolumen();
+            }
+            else if (command == "MUTE")
+            {
+                return Silenciar();
+            }
+            else if (command == "TURN_OFF")
+            {
+                return Apagar(); 
+            }
+            else if (command == "RESET")
+            {
+                return Reiniciar();
+            }
+            else if (command == "DISCONECT")
+            {
+                stream.Close();
+                return "Se desconecto exitosamente";
             }
             else
             {
@@ -220,7 +256,7 @@ namespace EquipoRemoto_Proyecto
             int hora = (fechaHoraActual.Hour);
             int minuto = (fechaHoraActual.Minute);
             int segundo = (fechaHoraActual.Second);
-            return "Fecha:  \n" + "A�o: " + ano + " \nMes: " + mes + "\nD�a: " + dia + " \nHora: " + hora + " " + minuto + " " + segundo;
+            return "Fecha:  \n" + "Ano: " + ano + " \nMes: " + mes + "\nDia: " + dia + " \nHora: " + hora + " " + minuto + " " + segundo;
         }
 
 
@@ -248,10 +284,10 @@ namespace EquipoRemoto_Proyecto
                 if (drive.IsReady)
                 {
                     mensaje.AppendLine($"Letra de unidad: {drive.Name}\n" +
-                        $"Tama�o total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
+                        $"Tamano total: {drive.TotalSize / (1024.0 * 1024 * 1024):F2} GB\n" +
                         $"Espacio utilizado: {((drive.TotalSize - drive.TotalFreeSpace) / (1024.0 * 1024 * 1024)):F2} GB\n" +
                         $"Espacio disponible: {drive.TotalFreeSpace / (1024.0 * 1024 * 1024):F2} GB\n" +
-                        $"Formato del sistema de archivos: {drive.DriveFormat}\n");
+                        $"Formato del sistema de archivos: {drive.DriveFormat}");
                 }
             }
 
@@ -303,7 +339,75 @@ namespace EquipoRemoto_Proyecto
 
             int screenWidth = primaryScreen.Bounds.Width;
             int screenHeight = primaryScreen.Bounds.Height;
-            return $"La resoluci�n de la pantalla es {screenWidth} x {screenHeight} p�xeles.";
+            return $"La resolucion de la pantalla es {screenWidth} x {screenHeight} pixeles.";
+        }
+        private String SubirVolumen()
+        {
+            Comandos("powershell -c \"(New-Object -ComObject WScript.Shell).SendKeys([char]175)\"");
+
+            return "Subiendo el volumen de la computadora...";
+        }
+
+        private String BajarVolumen()
+        {
+            Comandos("powershell -c \"(New-Object -ComObject WScript.Shell).SendKeys([char]174)\"");
+
+            return "Bajando el volumen de la computadora...";
+        }
+
+        private String Silenciar()
+        {
+            Comandos("powershell -c \"(New-Object -ComObject WScript.Shell).SendKeys([char]173)\"");
+
+            return "Se silencio la computadora";
+        }
+
+        private string Apagar()
+        {
+            Comandos("shutdown /s /t 0");
+
+            return "Se apagara la computadora";
+        }
+        private String Reiniciar()
+        {
+            Comandos("shutdown /r /t 0");
+
+            return "Se reiniciara la computadora";
+        }
+        private string CerrarSesion()
+        {
+            Comandos("shutdown /l /f");
+
+            return "Se cerrara la sesion";
+        }
+
+        private String CerrarProceso(int id)
+        {
+            try
+            {
+                Comandos($"taskkill /F /PID {id}");
+
+                return ($"Proceso con ID {id} finalizado");
+            }
+            catch (Exception ex)
+            {
+                return ($"Error al intentar finalizar el proceso con ID {id}: {ex.Message}");
+            }
+        }
+
+        private void Comandos(string comando)
+        {
+            System.Diagnostics.ProcessStartInfo info = null;
+            System.Diagnostics.Process proceso = null;
+
+            info = new System.Diagnostics.ProcessStartInfo("cmd", "/c" + comando);
+            info.RedirectStandardOutput = true;
+            info.UseShellExecute = false;
+            info.CreateNoWindow = true;
+
+            proceso = new System.Diagnostics.Process();
+            proceso.StartInfo = info;
+            proceso.Start();
         }
 
         private void UpdateLog(string message)
