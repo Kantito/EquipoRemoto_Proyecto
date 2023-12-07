@@ -75,9 +75,11 @@ namespace EquipoRemoto_Proyecto
 
         private void HandleClient(TcpClient acceptedClient)
         {
+            NetworkStream clientStream = null;
+
             try
             {
-                using (NetworkStream clientStream = acceptedClient.GetStream())
+                clientStream = acceptedClient.GetStream();
                 using (StreamReader reader = new StreamReader(clientStream))
                 using (StreamWriter writer = new StreamWriter(clientStream))
                 {
@@ -93,11 +95,16 @@ namespace EquipoRemoto_Proyecto
             }
             catch (Exception ex)
             {
-                UpdateLog("Cliente desconectado: " + ex.Message);
+                UpdateLog("Error durante la comunicación con el cliente: " + ex.Message);
             }
             finally
             {
+                // Cerrar el stream antes de cerrar el cliente
+                clientStream?.Close();
                 acceptedClient?.Close();
+
+                // Actualizar la interfaz de usuario desde el hilo de la interfaz de usuario
+
             }
         }
 
@@ -132,6 +139,14 @@ namespace EquipoRemoto_Proyecto
             {
                 return "Lista de unidades del disco duro" + ShowDriveInfo();
             }
+            else if (command == "GET_RESOLUTION")
+            {
+                return "Resolucion pantalla: " + GetResolution();
+            }
+            else if (command == "GET_USER_NAME")
+            {
+                return "Nombre del usuario que inicio sesion: " + Environment.UserName;
+            }
             else if (command == "GET_TIME_ZONE")
             {
                 return "Zona horaria del sistema: " + GetZonaHoraria();
@@ -140,49 +155,26 @@ namespace EquipoRemoto_Proyecto
             {
                 return "Fecha y hora del sistema: " + ObtenerFechaHora();
             }
-            else if (command == "GET_PROCESS_LIST")
+            else if (command == "GET_TOTAL_PROCESS")
             {
-                return "Lista de Procesos: \n" + ObtenerListaProcesos();
-            }
-            else if (command == "GET_RESOLUTION")
-            {
-                return "Resolucion pantalla: " + GetResolution();
+                return "Procesos en ejecucion: " + ObtenerListaProcesos();
             }
             else if (command == "TAKE_SCREENSHOT")
             {
                 return TakeScreenshot();
             }
-            else if (command == "CLOSE_SESION")
-            {
-                return CerrarSesion();
-            }
-            else if (command.StartsWith("KILL_PROCESS"))
+            else if (command.StartsWith("SEND_MESSAGE"))
             {
                 string[] mensajeSplit = command.Split(' ');
                 if (mensajeSplit.Length >= 2)
                 {
-                    if (int.TryParse(mensajeSplit[1], out int IDprocess))
-                    {
-                        CerrarProceso(IDprocess);
-
-                    }
+                    string mensaje = string.Join(" ", mensajeSplit.Skip(1));
+                    MostrarMensaje(mensaje);
+                    return "Mensaje enviado correctamente";
                 }
-                return "No se pudo terminar el proceso";
+                return "Error al enviar el mensaje";
             }
 
-            else if (command == "GET_TOTAL_PROCESS")
-            {
-                return "Procesos en ejecucion: " + ObtenerListaProcesos();
-            }
-            else if (command == "GET_USER_NAME")
-            {
-                return "Nombre del usuario que inicio sesion: " + Environment.UserName;
-            }
-            else if (command == "TAKE_SCREENSHOT")
-            {
-                return "Captura de pantalla: " + TakeScreenshot();
-
-            }
             else if (command == "INCREASE_VOLUMEN")
             {
                 return SubirVolumen();
@@ -197,22 +189,39 @@ namespace EquipoRemoto_Proyecto
             }
             else if (command == "TURN_OFF")
             {
-                return Apagar(); 
+                return Apagar();
             }
             else if (command == "RESET")
             {
                 return Reiniciar();
             }
-            else if (command == "DISCONECT")
+            else if (command == "CLOSE_SESION")
             {
-                stream.Close();
+                return CerrarSesion();
+            }
+            else if (command.StartsWith("KILL_PROCESS"))
+            {
+                string[] mensajeSplit = command.Split(' ');
+                if (mensajeSplit.Length >= 2)
+                {
+                    if (int.TryParse(mensajeSplit[1], out int IDprocess))
+                    {
+                        CerrarProceso(IDprocess);
+                        return $"Proceso con ID {IDprocess} finalizado";
+                    }
+                }
+                return "Error al finalizar el proceso";
+            }
+
+            else if (command == "DISCONNECT")
+            {
+                Application.Exit();
                 return "Se desconecto exitosamente";
             }
             else
             {
                 return "Comando no reconocido";
             }
-            //return "Comando ejecutado: " + command;
         }
 
         //Retorna el string de la zona horaria del sistema
@@ -237,7 +246,13 @@ namespace EquipoRemoto_Proyecto
                     Screen.PrimaryScreen.Bounds.Size,
                     CopyPixelOperation.SourceCopy);
 
-                string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "screenshot.png");
+                string baseFileName = "screenshot";
+                string fileExtension = ".png";
+
+                // Genera un nombre de archivo único
+                string fileName = GetUniqueScreenshotFileName(baseFileName, fileExtension);
+
+                // Guarda la captura de pantalla en el archivo
                 screenshot.Save(fileName, ImageFormat.Png);
 
                 return $"Captura de pantalla guardada en: {fileName}";
@@ -247,6 +262,115 @@ namespace EquipoRemoto_Proyecto
                 return $"Error al tomar la captura de pantalla: {ex.Message}";
             }
         }
+
+        private string GetUniqueScreenshotFileName(string baseFileName, string fileExtension)
+        {
+            string fileName = $"{baseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}{fileExtension}";
+
+            // Asegurarse de que el nombre de archivo sea único
+            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string fullPath = Path.Combine(desktopPath, fileName);
+
+            int counter = 1;
+            while (File.Exists(fullPath))
+            {
+                // Si el archivo ya existe, incrementa el contador
+                fileName = $"{baseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}_{counter}{fileExtension}";
+                fullPath = Path.Combine(desktopPath, fileName);
+                counter++;
+            }
+
+            return fullPath;
+        }
+
+        //private string TakeScreenshot()
+        //{
+        //    try
+        //    {
+        //        Bitmap screenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width,
+        //            Screen.PrimaryScreen.Bounds.Height,
+        //            PixelFormat.Format32bppArgb);
+        //        Graphics gfxScreenshot = Graphics.FromImage(screenshot);
+
+        //        gfxScreenshot.CopyFromScreen(Screen.PrimaryScreen.Bounds.X,
+        //            Screen.PrimaryScreen.Bounds.Y,
+        //            0,
+        //            0,
+        //            Screen.PrimaryScreen.Bounds.Size,
+        //            CopyPixelOperation.SourceCopy);
+
+        //        string baseFileName = "screenshot";
+        //        string fileExtension = ".png";
+
+        //        // Genera un nombre de archivo único
+        //        string fileName = GetUniqueScreenshotFileName(baseFileName, fileExtension);
+
+        //        // Guarda la captura de pantalla en el archivo
+        //        screenshot.Save(fileName, ImageFormat.Png);
+
+        //        // Envía la captura de pantalla al equipo controlador
+        //        SendScreenshotToController(fileName);
+
+        //        return $"Captura de pantalla guardada en: {fileName}";
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return $"Error al tomar la captura de pantalla: {ex.Message}";
+        //    }
+        //}
+
+        //private void SendScreenshotToController(string fileName)
+        //{
+        //    if (stream != null && stream.CanWrite)
+        //    {
+        //        try
+        //        {
+        //            using (FileStream fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+        //            {
+        //                byte[] buffer = new byte[1024];
+        //                int bytesRead;
+
+        //                // Envía el nombre del archivo primero
+        //                byte[] fileNameBytes = Encoding.UTF8.GetBytes(Path.GetFileName(fileName));
+        //                stream.Write(fileNameBytes, 0, fileNameBytes.Length);
+
+        //                // Luego envía los datos de la imagen
+        //                while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) > 0)
+        //                {
+        //                    stream.Write(buffer, 0, bytesRead);
+        //                }
+
+        //                // Asegúrate de que todo se haya enviado
+        //                stream.Flush();
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            UpdateLog($"Error al enviar la captura de pantalla al equipo controlador: {ex.Message}");
+        //        }
+        //    }
+        //}
+
+        //private string GetUniqueScreenshotFileName(string baseFileName, string fileExtension)
+        //{
+        //    string fileName = $"{baseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}{fileExtension}";
+
+        //    // Asegurarse de que el nombre de archivo sea único
+        //    string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        //    string fullPath = Path.Combine(desktopPath, fileName);
+
+        //    int counter = 1;
+        //    while (File.Exists(fullPath))
+        //    {
+        //        // Si el archivo ya existe, incrementa el contador
+        //        fileName = $"{baseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}_{counter}{fileExtension}";
+        //        fullPath = Path.Combine(desktopPath, fileName);
+        //        counter++;
+        //    }
+
+        //    return fullPath;
+        //}
+
         static String ObtenerFechaHora()
         {
             DateTime fechaHoraActual = DateTime.Now;
@@ -259,6 +383,10 @@ namespace EquipoRemoto_Proyecto
             return "Fecha:  \n" + "Ano: " + ano + " \nMes: " + mes + "\nDia: " + dia + " \nHora: " + hora + " " + minuto + " " + segundo;
         }
 
+        private void MostrarMensaje(string mensaje)
+        {
+            MessageBox.Show(mensaje, "Mensaje del Controlador");
+        }
 
         static string ObtenerListaProcesos()
         {
@@ -412,16 +540,25 @@ namespace EquipoRemoto_Proyecto
 
         private void UpdateLog(string message)
         {
-            if (this.IsDisposed) return;
+            if (this.IsDisposed || this.Disposing) return;
 
             if (this.InvokeRequired)
             {
                 try
                 {
-                    this.Invoke(new MethodInvoker(delegate { UpdateLog(message); }));
+                    if (!this.IsHandleCreated) return; // Verifica si el control ha sido creado
+
+                    this.Invoke(new MethodInvoker(delegate
+                    {
+                        if (!this.IsDisposed && this.IsHandleCreated) // Verifica nuevamente antes de actualizar
+                        {
+                            UpdateLog(message);
+                        }
+                    }));
                 }
                 catch (ObjectDisposedException)
                 {
+                    // Puede ser lanzada si el formulario se cierra mientras se está ejecutando Invoke
                 }
             }
             else
@@ -429,6 +566,7 @@ namespace EquipoRemoto_Proyecto
                 logTextBox.AppendText(message + "\r\n");
             }
         }
+
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
